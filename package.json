@@ -13,9 +13,12 @@
     "@heroicons/react": "^2.1.5",
     "@react-three/drei": "^9.114.4",
     "@react-three/fiber": "^8.17.10",
+    "framer-motion": "^11.11.9",
     "lucide-react": "^0.453.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^6.27.0",
+    "react-spinners": "^0.14.1",
     "three": "^0.169.0"
   },
   "devDependencies": {

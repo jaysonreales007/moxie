@@ -256,7 +256,7 @@ const MiningGame: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full p-4 bg-gray-900">
-      <div className="w-full max-w-4xl bg-gray-100 rounded-lg shadow-lg p-4 mb-4">
+      <div className="w-full max-w-4xl bg-gray-100 rounded-lg shadow-lg mb-4">
         <div className="text-2xl md:text-4xl font-bold text-center text-gray-950">Score: {score}</div>
         <div className="flex justify-center items-center mt-2">
           <div className="text-base md:text-lg text-gray-950">Health:</div>
