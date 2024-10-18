@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Heart } from 'lucide-react'
 import BloodSplatter from './BloodSplatter'
 import SparkleEffect from './SparkleEffect'
