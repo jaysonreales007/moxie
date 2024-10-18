@@ -16,7 +16,7 @@ const BloodSplatter: React.FC<BloodSplatterProps> = ({ x, y }) => {
       const size = 2 + Math.random() * 4;
       const angle = Math.random() * Math.PI * 2;
       const velocity = 1 + Math.random() * 3;
-      const distance = 10 + Math.random() * 60;
+      const distance = 10 + Math.random() * 40;
       const duration = 300 + Math.random() * 200;
       const delay = Math.random() * 100;
 

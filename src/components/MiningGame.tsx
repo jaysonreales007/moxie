@@ -8,15 +8,22 @@ interface GameObject {
   id: number
   x: number
   y: number
-  type: 'reward' | 'rock'
+  type: 'reward' | 'rock' | 'fastRock'
   imageIndex?: number
+  rotation: number
+  rotationSpeed: number
+}
+
+interface PlayerPosition {
+  x: number
+  y: number
 }
 
 const MiningGame: React.FC = () => {
   const [score, setScore] = useState(0)
   const [health, setHealth] = useState(5)
   const [gameObjects, setGameObjects] = useState<GameObject[]>([])
-  const [playerPosition, setPlayerPosition] = useState(50)
+  const [playerPosition, setPlayerPosition] = useState<PlayerPosition>({ x: 450, y: 350 })
   const [gameOver, setGameOver] = useState(false)
   const [bloodSplatters, setBloodSplatters] = useState<{ id: number; x: number; y: number }[]>([])
   const [sparkles, setSparkles] = useState<{ id: number; x: number; y: number }[]>([])
@@ -27,6 +34,7 @@ const MiningGame: React.FC = () => {
   const gameLoopRef = useRef<number | null>(null)
   const lastSpeedIncreaseRef = useRef(Date.now())
   const gameAreaRef = useRef<HTMLDivElement>(null)
+  const [fastRocks, setFastRocks] = useState<GameObject[]>([])
 
   const baseGameWidth = 900
   const baseGameHeight = 400
@@ -34,22 +42,26 @@ const MiningGame: React.FC = () => {
   const basePlayerHeight = 50
   const baseObjectSize = 30
 
-  const gameWidth = baseGameWidth * scale
-  const gameHeight = baseGameHeight * scale
+  const [gameSize, setGameSize] = useState({ width: baseGameWidth, height: baseGameHeight })
+
+  const gameWidth = gameSize.width
+  const gameHeight = gameSize.height
   const playerWidth = basePlayerWidth * scale
   const playerHeight = basePlayerHeight * scale
   const objectSize = baseObjectSize * scale
 
   const obstacleCount = 2
 
-  const createGameObject = useCallback((): GameObject => {
-    const isReward = Math.random() > 0.5
+  const createGameObject = useCallback((type: 'reward' | 'rock' | 'fastRock' = 'rock'): GameObject => {
+    const isReward = type === 'reward'
     return {
       id: Math.random(),
       x: Math.random() * (gameWidth - objectSize),
       y: 0,
-      type: isReward ? 'reward' : 'rock',
-      imageIndex: isReward ? undefined : Math.floor(Math.random() * obstacleCount) + 1
+      type,
+      imageIndex: isReward ? undefined : Math.floor(Math.random() * obstacleCount) + 1,
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 10
     }
   }, [gameWidth, objectSize])
 
@@ -64,73 +76,106 @@ const MiningGame: React.FC = () => {
       setPlayerSizeMultiplier(prev => Math.min(prev + 0.1, 2))
       lastSpeedIncreaseRef.current = now
       setCountdown(null)
+      setFastRocks([]) // Clear fast rocks after speed increase
     } else if (timeSinceLastIncrease >= 25000 && timeSinceLastIncrease < 30000) {
       setCountdown(Math.ceil((30000 - timeSinceLastIncrease) / 1000))
+      
+      // Add fast rocks if player size is >= 1.4
+      if (playerSizeMultiplier >= 1.4 && fastRocks.length === 0) {
+        const newFastRocks = Array(3).fill(null).map(() => createGameObject('fastRock'))
+        setFastRocks(newFastRocks)
+      }
     } else {
       setCountdown(null)
     }
 
     setGameObjects((prevObjects) => {
       const newObjects = prevObjects
-        .map((obj) => ({ ...obj, y: obj.y + 5 * speedMultiplier * scale }))
+        .map((obj) => ({
+          ...obj,
+          y: obj.y + 5 * speedMultiplier * scale,
+          rotation: (obj.rotation + obj.rotationSpeed) % 360
+        }))
         .filter((obj) => obj.y < gameHeight)
 
       if (Math.random() < 0.1) {
-        newObjects.push(createGameObject())
+        newObjects.push(createGameObject(Math.random() > 0.5 ? 'reward' : 'rock'))
       }
 
-      const playerLeft = playerPosition
-      const playerRight = playerPosition + playerWidth * playerSizeMultiplier
+      return newObjects
+    })
 
-      return newObjects.filter((obj) => {
-        if (
-          obj.y + objectSize >= gameHeight - playerHeight * playerSizeMultiplier &&
-          obj.x < playerRight &&
-          obj.x + objectSize > playerLeft
-        ) {
-          if (obj.type === 'reward') {
-            setScore((prevScore) => prevScore + 1)
-            setSparkles((prev) => [
-              ...prev,
-              { id: Math.random(), x: obj.x + objectSize / 2, y: gameHeight - playerHeight * playerSizeMultiplier }
-            ])
-          } else {
-            setHealth((prevHealth) => {
-              const newHealth = prevHealth - 1
-              if (newHealth <= 0) {
-                setGameOver(true)
-              }
-              return newHealth
-            })
-            setBloodSplatters((prev) => [
-              ...prev,
-              { id: Math.random(), x: obj.x, y: gameHeight - playerHeight * playerSizeMultiplier }
-            ])
-          }
-          return false
+    // Update fast rocks position and rotation
+    setFastRocks((prevFastRocks) => {
+      return prevFastRocks
+        .map((rock) => ({
+          ...rock,
+          y: rock.y + speedMultiplier * scale, // Move fast rocks 20 times faster than normal rocks
+          rotation: (rock.rotation + rock.rotationSpeed * 2) % 360 // Spin fast rocks twice as fast as normal rocks
+        }))
+        .filter((rock) => rock.y < gameHeight) // Remove rocks that have moved off the screen
+    })
+
+    const allObjects = [...gameObjects, ...fastRocks]
+    const playerCenterX = playerPosition.x + (playerWidth * playerSizeMultiplier) / 2
+    const playerCenterY = playerPosition.y + (playerHeight * playerSizeMultiplier) / 2
+
+    allObjects.forEach((obj) => {
+      const objCenterX = obj.x + objectSize / 2
+      const objCenterY = obj.y + objectSize / 2
+      const distance = Math.sqrt(
+        Math.pow(playerCenterX - objCenterX, 2) + Math.pow(playerCenterY - objCenterY, 2)
+      )
+
+      if (distance < (playerWidth * playerSizeMultiplier + objectSize) / 2) {
+        if (obj.type === 'reward') {
+          setScore((prevScore) => prevScore + 1)
+          setSparkles((prev) => [
+            ...prev,
+            { id: Math.random(), x: obj.x + objectSize / 2, y: obj.y + objectSize / 2 }
+          ])
+        } else {
+          setHealth((prevHealth) => {
+            const newHealth = prevHealth - 1
+            if (newHealth <= 0) {
+              setGameOver(true)
+            }
+            return newHealth
+          })
+          setBloodSplatters((prev) => [
+            ...prev,
+            { id: Math.random(), x: obj.x + objectSize / 2, y: obj.y + objectSize / 2 }
+          ])
         }
-        return true
-      })
+        // Remove the collided object
+        if (obj.type === 'fastRock') {
+          setFastRocks((prev) => prev.filter((rock) => rock.id !== obj.id))
+        } else {
+          setGameObjects((prev) => prev.filter((gameObj) => gameObj.id !== obj.id))
+        }
+      }
     })
 
     gameLoopRef.current = requestAnimationFrame(updateGameState)
-  }, [playerPosition, createGameObject, gameOver, speedMultiplier, playerSizeMultiplier, gameHeight, playerWidth, playerHeight, objectSize, scale])
+  }, [playerPosition, createGameObject, gameOver, speedMultiplier, playerSizeMultiplier, gameHeight, playerWidth, playerHeight, objectSize, scale, gameObjects, fastRocks])
 
   useEffect(() => {
     const handleResize = () => {
-      if (gameAreaRef.current) {
-        const { width, height } = gameAreaRef.current.getBoundingClientRect()
+      const container = gameAreaRef.current
+      if (container) {
+        const { width, height } = container.getBoundingClientRect()
         const newScale = Math.min(width / baseGameWidth, height / baseGameHeight)
         setScale(newScale)
+        setGameSize({
+          width: width / newScale,
+          height: height / newScale
+        })
       }
     }
 
     handleResize()
     window.addEventListener('resize', handleResize)
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-    }
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
   useEffect(() => {
@@ -163,16 +208,24 @@ const MiningGame: React.FC = () => {
   const handleMouseMove = (e: React.MouseEvent) => {
     if (gameOver) return
     const gameRect = e.currentTarget.getBoundingClientRect()
-    const newPosition = (e.clientX - gameRect.left - playerWidth * playerSizeMultiplier / 2) / scale
-    setPlayerPosition(Math.max(0, Math.min(newPosition, gameWidth - playerWidth * playerSizeMultiplier)))
+    const newX = (e.clientX - gameRect.left - (playerWidth * playerSizeMultiplier) / 2) / scale
+    const newY = (e.clientY - gameRect.top - (playerHeight * playerSizeMultiplier) / 2) / scale
+    setPlayerPosition({
+      x: Math.max(0, Math.min(newX, gameWidth - playerWidth * playerSizeMultiplier)),
+      y: Math.max(0, Math.min(newY, gameHeight - playerHeight * playerSizeMultiplier))
+    })
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (gameOver) return
     const gameRect = e.currentTarget.getBoundingClientRect()
     const touch = e.touches[0]
-    const newPosition = (touch.clientX - gameRect.left - playerWidth * playerSizeMultiplier / 2) / scale
-    setPlayerPosition(Math.max(0, Math.min(newPosition, gameWidth - playerWidth * playerSizeMultiplier)))
+    const newX = (touch.clientX - gameRect.left - (playerWidth * playerSizeMultiplier) / 2) / scale
+    const newY = (touch.clientY - gameRect.top - (playerHeight * playerSizeMultiplier) / 2) / scale
+    setPlayerPosition({
+      x: Math.max(0, Math.min(newX, gameWidth - playerWidth * playerSizeMultiplier)),
+      y: Math.max(0, Math.min(newY, gameHeight - playerHeight * playerSizeMultiplier))
+    })
   }
 
   const restartGame = () => {
@@ -202,42 +255,59 @@ const MiningGame: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-purple-500 p-4">
-      <div className="bg-white rounded-lg shadow-lg p-4 mb-4 w-full max-w-md">
-        <div className="text-xl md:text-2xl font-bold text-center text-gray-800">Score: {score}</div>
+    <div className="flex flex-col items-center justify-center min-h-screen w-full p-4 bg-gray-900">
+      <div className="w-full max-w-4xl bg-gray-100 rounded-lg shadow-lg p-4 mb-4">
+        <div className="text-2xl md:text-4xl font-bold text-center text-gray-950">Score: {score}</div>
         <div className="flex justify-center items-center mt-2">
-          <div className="text-base md:text-lg text-gray-800">Health:</div>
+          <div className="text-base md:text-lg text-gray-950">Health:</div>
           <div className="flex ml-2">
             {renderHearts()}
           </div>
         </div>
-        <div className="text-xs md:text-sm text-gray-600 mt-2">Speed: x{speedMultiplier.toFixed(1)}</div>
-        <div className="text-xs md:text-sm text-gray-600">Player Size: x{playerSizeMultiplier.toFixed(1)}</div>
+        <div className="text-xs md:text-sm text-gray-950 mt-2">Speed: x{speedMultiplier.toFixed(1)}</div>
+        <div className="text-xs md:text-sm text-gray-950">Player Size: x{playerSizeMultiplier.toFixed(1)}</div>
       </div>
       <div 
         ref={gameAreaRef}
-        className="relative bg-gray-200 rounded-lg overflow-hidden touch-none"
-        style={{ width: '100%', maxWidth: `${baseGameWidth}px`, aspectRatio: `${baseGameWidth} / ${baseGameHeight}` }}
+        className="relative bg-gray-400 rounded-lg overflow-hidden shadow-lg border border-gray-600 w-full max-w-4xl"
+        style={{ aspectRatio: `${baseGameWidth} / ${baseGameHeight}` }}
         onMouseMove={handleMouseMove}
         onTouchMove={handleTouchMove}
       >
-        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: baseGameWidth, height: baseGameHeight }}>
-          {gameObjects.map((obj) => (
+        <div style={{ 
+          transform: `scale(${scale})`, 
+          transformOrigin: 'top left', 
+          width: gameWidth, 
+          height: gameHeight 
+        }}>
+          {[...gameObjects, ...fastRocks].map((obj) => (
             obj.type === 'reward' ? (
               <img
                 key={obj.id}
                 src="/images/moxie.png"
                 alt="Reward"
                 className="absolute game-object reward transition-transform duration-300 hover:scale-110"
-                style={{ left: obj.x / scale, top: obj.y / scale, width: baseObjectSize, height: baseObjectSize }}
+                style={{ 
+                  left: obj.x, 
+                  top: obj.y, 
+                  width: objectSize, 
+                  height: objectSize 
+                }}
               />
             ) : (
               <img
                 key={obj.id}
                 src={`/images/obstacles/daggers${obj.imageIndex}.png`}
                 alt="Obstacle"
-                className="absolute game-object rock transition-transform duration-300 hover:scale-110"
-                style={{ left: obj.x / scale, top: obj.y / scale, width: baseObjectSize * 2, height: baseObjectSize * 2 }}
+                className={`absolute game-object ${obj.type === 'fastRock' ? 'fast-rock' : 'rock'} transition-transform duration-300 hover:scale-110`}
+                style={{ 
+                  left: obj.x, 
+                  top: obj.y, 
+                  width: objectSize * 2, 
+                  height: objectSize * 2,
+                  transform: `rotate(${obj.rotation}deg)`,
+                  transition: 'transform 0.1s linear'
+                }}
               />
             )
           ))}
@@ -246,33 +316,33 @@ const MiningGame: React.FC = () => {
             alt="Player"
             className="absolute player"
             style={{
-              left: playerPosition / scale,
-              width: basePlayerWidth * playerSizeMultiplier,
-              height: basePlayerHeight * playerSizeMultiplier,
-              bottom: 0,
+              left: playerPosition.x,
+              top: playerPosition.y,
+              width: playerWidth * playerSizeMultiplier,
+              height: playerHeight * playerSizeMultiplier,
               transition: 'width 0.3s, height 0.3s'
             }}
           />
           {bloodSplatters.map((splatter) => (
-            <BloodSplatter key={splatter.id} x={splatter.x / scale} y={splatter.y / scale} />
+            <BloodSplatter key={splatter.id} x={splatter.x} y={splatter.y} />
           ))}
           {sparkles.map((sparkle) => (
-            <SparkleEffect key={sparkle.id} x={sparkle.x / scale} y={sparkle.y / scale} />
+            <SparkleEffect key={sparkle.id} x={sparkle.x} y={sparkle.y} />
           ))}
           {countdown !== null && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-black bg-opacity-50 text-white text-4xl md:text-6xl font-bold rounded-full w-24 h-24 md:w-32 md:h-32 flex items-center justify-center">
+              <div className="bg-black bg-opacity-70 text-white text-4xl md:text-6xl font-bold rounded-full w-24 h-24 md:w-32 md:h-32 flex items-center justify-center">
                 {countdown}
               </div>
             </div>
           )}
         </div>
         {gameOver && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg p-4 text-center">
-              <h2 className="text-xl md:text-2xl font-bold text-red-600">Game Over</h2>
-              <p className="text-base md:text-lg">Final Score: {score}</p>
-              <button onClick={restartGame} className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">Restart</button>
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-90">
+            <div className="bg-gray-900 rounded-lg p-6 md:p-8 text-center shadow-lg border border-gray-600">
+              <h2 className="text-3xl md:text-5xl font-bold text-red-500 mb-4">Game Over</h2>
+              <p className="text-xl md:text-2xl text-gray-300 mb-6">Final Score: <span className="font-semibold text-white">{score}</span></p>
+              <button onClick={restartGame} className="bg-blue-600 text-white px-6 py-3 md:px-8 md:py-4 rounded-full text-lg md:text-xl hover:bg-blue-700 transition duration-300 ease-in-out shadow-md">Restart</button>
             </div>
           </div>
         )}
