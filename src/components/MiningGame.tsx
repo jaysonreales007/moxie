@@ -35,12 +35,30 @@ const MiningGame: React.FC = () => {
   const lastSpeedIncreaseRef = useRef(Date.now())
   const gameAreaRef = useRef<HTMLDivElement>(null)
   const [fastRocks, setFastRocks] = useState<GameObject[]>([])
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  })
 
-  const baseGameWidth = 900
-  const baseGameHeight = 400
-  const basePlayerWidth = 50
-  const basePlayerHeight = 50
-  const baseObjectSize = 30
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
+    }
+
+    // Clean up event listener on unmount
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  })
+
+  const baseGameWidth = windowSize.width
+  const baseGameHeight = windowSize.height
+  const basePlayerWidth = baseGameWidth * 0.075
+  const basePlayerHeight = baseGameHeight * 0.15
+  const baseObjectSize = baseGameWidth * 0.033
 
   const [gameSize, setGameSize] = useState({ width: baseGameWidth, height: baseGameHeight })
 

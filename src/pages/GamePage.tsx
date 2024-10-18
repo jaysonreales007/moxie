@@ -29,7 +29,7 @@ const GamePage: React.FC = () => {
   if (gameState === 'playing') {
     return (
       <motion.div 
-        className="flex-grow mt-16 p-4"
+        className="flex-grow p-4"
         initial={{ opacity: 0.5 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -41,7 +41,7 @@ const GamePage: React.FC = () => {
 
   return (
     <motion.div 
-      className="flex-grow mt-16 p-4 flex items-center justify-center"
+      className="flex-grow mt-8 p-4 flex items-center justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

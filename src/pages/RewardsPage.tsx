@@ -16,7 +16,7 @@ const RewardsPage: React.FC = () => {
 
   return (
     <motion.div 
-      className="flex-grow mt-16 p-4 flex items-center justify-center"
+      className="flex-grow mt-8 p-4 flex items-center justify-center"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
