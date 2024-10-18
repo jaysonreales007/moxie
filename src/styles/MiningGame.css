@@ -1,0 +1,133 @@
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.game-info {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 900px;
+  margin-bottom: 10px;
+}
+
+.score, .health {
+  font-size: 24px;
+}
+
+.game-area {
+  position: relative;
+  border: 2px solid #333;
+  overflow: hidden;
+}
+
+.game-area canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.game-object {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.reward {
+  background-color: gold;
+}
+
+.player {
+  position: absolute;
+  bottom: 0;
+}
+
+.game-over {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+}
+
+.game-over h2 {
+  font-size: 36px;
+  margin-bottom: 20px;
+}
+
+.game-over button {
+  font-size: 18px;
+  padding: 10px 20px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.game-over button:hover {
+  background-color: #2980b9;
+}
+
+.blood-splatter {
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.blood-particle {
+  position: absolute;
+  background-color: #8b0000;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+
+@keyframes blood-particle {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: 
+      translate(
+        calc(-50% + (cos(var(--angle)) * var(--distance) * var(--velocity))),
+        calc(-50% + (sin(var(--angle)) * var(--distance) * var(--velocity)))
+      )
+      scale(0.5);
+  }
+}
+
+@keyframes sparkle {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: 
+      translate(
+        calc(-50% + (cos(var(--angle)) * var(--distance) * 0.5)),
+        calc(-50% + (sin(var(--angle)) * var(--distance) * 0.5))
+      )
+      scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: 
+      translate(
+        calc(-50% + (cos(var(--angle)) * var(--distance))),
+        calc(-50% + (sin(var(--angle)) * var(--distance)))
+      )
+      scale(0.5);
+  }
+}
+
+.sparkle-effect {
+  pointer-events: none;
+  z-index: 1000;
+}
