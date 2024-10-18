@@ -1,20 +1,8 @@
-import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { PlayIcon } from '@heroicons/react/24/solid'
 
 function Home() {
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading delay
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <div className="flex flex-col items-center justify-center h-screen relative overflow-hidden px-4 lg:px-0">
       {/* Animated Background Image */}
