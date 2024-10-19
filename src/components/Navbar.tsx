@@ -88,7 +88,7 @@ const Navbar: React.FC = () => {
                   to={item.path}
                   className={`block px-3 py-2 rounded-md text-base font-medium ${
                     location.pathname === item.path
-                      ? 'text-blue-400 bg-gray-800'
+                      ? 'text-white bg-gray-800'
                       : 'text-gray-300 hover:text-white hover:bg-gray-700'
                   }`}
                   onClick={toggleMenu}

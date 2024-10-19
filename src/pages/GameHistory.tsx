@@ -12,7 +12,7 @@ const RewardsPage: React.FC = () => {
     >
       <div className="text-center bg-gray-800 p-8 rounded-lg shadow-xl">
         <motion.h2 
-          className="text-4xl font-bold mb-4 text-blue-400"
+          className="text-4xl font-bold mb-4 text-white"
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 200 }}
